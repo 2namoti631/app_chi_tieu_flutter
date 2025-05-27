@@ -1,0 +1,56 @@
+# ========== FLUTTER IGNORE ==========
+
+# Flutter build output
+/app_chi_tieu/build/
+/app_chi_tieu/.dart_tool/
+/app_chi_tieu/.packages
+/app_chi_tieu/.flutter-plugins
+/app_chi_tieu/.flutter-plugins-dependencies
+/app_chi_tieu/.flutter-versions
+
+
+/app_chi_tieu/test 
+# Flutter IDE files
+/app_chi_tieu/.idea/
+/app_chi_tieu/.vscode/
+/app_chi_tieu/*.iml
+
+# Android
+/app_chi_tieu/android/.gradle/
+/app_chi_tieu/android/app/build/
+/app_chi_tieu/android/local.properties
+
+# Others
+/app_chi_tieu/*.log
+/app_chi_tieu/*.tmp
+/app_chi_tieu/.DS_Store
+
+# ========== PYTHON BACKEND IGNORE ==========
+
+# Byte-compiled / cache
+/backend/__pycache__/
+/backend/**/*.py[cod]
+/backend/*.py[cod]
+/backend/*.so
+
+# Virtual environment
+/backend/venv/
+/backend/env/
+/backend/.env
+/backend/.venv
+
+# Logs
+/backend/*.log
+
+# IDE/editor files
+/backend/.idea/
+/backend/.vscode/
+/backend/.DS_Store
+
+# Misc
+/backend/.pytest_cache/
+/backend/.mypy_cache/
+/backend/.coverage
+/backend/coverage.xml
+/backend/htmlcov/
+/backend/.pylint.d/
