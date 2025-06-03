@@ -1,16 +1,50 @@
+import 'package:app_chi_tieu/widgets/calender_bar.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: TransactionDetailScreen(),
-  ));
-}
-class TransactionDetailScreen extends StatelessWidget {
+import '../widgets/floating_button.dart';
+
+
+class TransactionDetailScreen extends StatefulWidget {
   const TransactionDetailScreen({super.key});
+  @override
+  State<TransactionDetailScreen> createState() => _TransactionDetailScreenState();
+}
+class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
+
+  DateTime selectedDate = DateTime.now();
+
+  // Dữ liệu mẫu cho các giao dịch
+  final List<Map<String, dynamic>> transactions = [
+    {
+      'date': DateTime(2025, 5, 24),
+      'label': 'Hôm nay',
+      'month': 'tháng 5 2025',
+      'total': '-100,000',
+      'items': [
+        {'category': 'Ăn uống', 'note': 'ăn trưa', 'amount': '50,000'},
+        {'category': 'Học tập', 'note': 'mua sách', 'amount': '50,000'},
+      ],
+    },
+    {
+      'date': DateTime(2025, 5, 23),
+      'label': 'Hôm qua',
+      'month': 'tháng 5 2025',
+      'total': '-100,000',
+      'items': [
+        {'category': 'Sức khỏe', 'note': 'mua thuốc', 'amount': '60,000'},
+      ],
+    },
+  ];
+
 
   @override
   Widget build(BuildContext context) {
+    List<Map<String, dynamic>> filteredTransactions = transactions.where((tx) {
+      return tx['date'].year == selectedDate.year &&
+          tx['date'].month == selectedDate.month &&
+          tx['date'].day == selectedDate.day;
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -28,126 +62,46 @@ class TransactionDetailScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          _buildCalendarBar(),
+          CalendarPageBar(
+            onDateSelected: (date) {
+              setState(() {
+                selectedDate = date;
+              });
+            },
+          ),
           Expanded(
-            child: ListView(
+            child: filteredTransactions.isEmpty
+                ? Center(
+              child: Text(
+                'Không có giao dịch cho ngày ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
               padding: const EdgeInsets.all(12),
-              children: const [
-                TransactionDayCard(
-                  date: '24',
-                  label: 'Hôm nay',
-                  month: 'tháng 5 2025',
-                  total: '-100,000',
-                  items: [
-                    TransactionItem(category: 'Ăn uống', note: 'ăn trưa', amount: '50,000'),
-                    TransactionItem(category: 'Học tập', note: 'mua sách', amount: '50,000'),
-                  ],
-                ),
-                SizedBox(height: 16),
-                TransactionDayCard(
-                  date: '23',
-                  label: 'Hôm qua',
-                  month: 'tháng 5 2025',
-                  total: '-100,000',
-                  items: [
-                    TransactionItem(category: 'Sức khỏe', note: 'mua thuốc', amount: '60,000'),
-                  ],
-                ),
-              ],
+              itemCount: filteredTransactions.length,
+              itemBuilder: (context, index) {
+                var tx = filteredTransactions[index];
+                return TransactionDayCard(
+                  date: tx['date'].day.toString(),
+                  label: tx['label'],
+                  month: tx['month'],
+                  total: tx['total'],
+                  items: (tx['items'] as List)
+                      .map((item) => TransactionItem(
+                    category: item['category'],
+                    note: item['note'],
+                    amount: item['amount'],
+                  ))
+                      .toList(),
+                );
+              },
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal.shade700,
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            builder: (context) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.remove_circle_outline),
-                    title: const Text('Thêm chi tiêu'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Điều hướng hoặc xử lý thêm chi tiêu
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.add_circle_outline),
-                    title: const Text('Thêm thu nhập'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Điều hướng hoặc xử lý thêm thu nhập
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        },
-        child: const Icon(Icons.add, size: 32),
-      ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        child: BottomNavigationBar(
-          currentIndex: 1,
-          onTap: (index) {},
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ''),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCalendarBar() {
-    final dates = ['19', '20', '21', '22', '23', '24', '25'];
-    final days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(dates.length, (index) {
-            final isSelected = dates[index] == '24';
-            return Column(
-              children: [
-                Text(dates[index], style: const TextStyle(fontWeight: FontWeight.bold)),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.green : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    days[index],
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }),
-        ),
-      ),
+      floatingActionButton:CustomFAB(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
