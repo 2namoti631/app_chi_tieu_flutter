@@ -7,19 +7,40 @@ from datetime import datetime, date
 class User(BaseModel):
     email: EmailStr
     name: str
-    password_hash: str 
-    created_at: datetime = Field(default_factory=datetime.utcnow) 
+    password: str = Field(..., min_length=6)  # plaintext password client gửi khi đăng ký
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    class Config:
+        orm_mode = True
+
+class UserInDB(BaseModel):
+    email: EmailStr
+    name: str
+    password_hash: str  # chỉ lưu hash mật khẩu, không lưu plaintext
+    created_at: datetime
+    class Config:
+        orm_mode = True
+
+
+# ------------------ LOGIN ------------------
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str  # plaintext password client gửi khi đăng nhập
 
 # ------------------ CATEGORIES ------------------
 class Category(BaseModel):
-    user_id: str  # sẽ là ObjectId dạng string
+    user_id: str  # ObjectId dạng string
     name: str
-    icon: Optional[str] = "📦"  # có thể dùng emoji icon
-    color: Optional[str] = "#A22727"  # mã màu hex
-    type: Literal["expense", "income"]  # chỉ cho phép 2 loại
+    icon: Optional[str] = "📦"
+    type: Literal["expense", "income"]
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class CategoryUpdate(BaseModel):
+    name: Optional[str]
+    icon: Optional[str]
+    type: Optional[Literal["expense", "income"]]
+
 # ------------------ TRANSACTIONS ------------------
+
 class TransactionItem(BaseModel):
 
     amount: int  
@@ -29,8 +50,8 @@ class TransactionItem(BaseModel):
 
 
 class Transaction(BaseModel):
-    user_id: str 
-    date: date # ngày chi tiêu do người dùng chọn 
-    items: List[TransactionItem]
-    createAt: datetime = Field(default_factory=datetime.utcnow) # thời điểm tạo bản ghi 
 
+    user_id: str 
+    date: date
+    items: List[TransactionItem]
+    created_at: datetime = Field(default_factory=datetime.utcnow)
