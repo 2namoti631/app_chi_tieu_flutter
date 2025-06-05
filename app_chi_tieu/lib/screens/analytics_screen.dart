@@ -1,172 +1,249 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'dart:convert';
 
+import '../models/transaction_item_model.dart';
+import '../providers/user_provider.dart';
+import '../widgets/category_bar_chart.dart';
 import '../widgets/floating_button.dart';
 
 
-void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: AnalyticsScreen(),
-  ));
+// ... giữ nguyên phần import và các class model/provider/widget
+
+class AnalyticsScreen extends StatefulWidget {
+  const AnalyticsScreen({super.key});
+
+  @override
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class AnalyticsScreen extends StatelessWidget {
-  const AnalyticsScreen({super.key});
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  String selectedFilter = 'Month';
+  double totalSpent = 0;
+  List<TransactionItemModel> expenseItems = [];
+  List<CategoryExpense> categoryExpensesList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadAnalyticsData(selectedFilter);
+  }
+
+  Map<String, double> aggregateByCategory(List<TransactionItemModel> items) {
+    final Map<String, double> result = {};
+    for (var item in items) {
+      final cat = item.category ?? 'Khác';
+      final amount = item.amount ?? 0;
+      result[cat] = (result[cat] ?? 0) + amount;
+    }
+    return result;
+  }
+
+  Future<void> loadAnalyticsData(String filter) async {
+    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    final uri = Uri.parse("http://10.0.2.2:8080/analytics/").replace(queryParameters: {
+      "user_id": userId,
+      "filter_by": filter.toLowerCase(),
+      "reference_date": DateTime.now().toIso8601String(),
+    });
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<TransactionItemModel> loadedItems = [];
+
+        for (var transaction in data['transactions']) {
+          final date = transaction['date'];
+          for (var item in transaction['items'] ?? []) {
+            loadedItems.add(TransactionItemModel.fromJson({
+              ...item,
+              'date': date,
+              'userId': userId,
+            }));
+          }
+        }
+
+        final categoryTotals = aggregateByCategory(loadedItems);
+        final categoryExpenses = categoryTotals.entries
+            .map((e) => CategoryExpense(category: e.key, totalAmount: e.value))
+            .toList();
+
+        setState(() {
+          totalSpent = (data['total_spent'] ?? 0).toDouble();
+          expenseItems = loadedItems;
+          categoryExpensesList = categoryExpenses;
+        });
+      } else {
+        print("Lỗi khi gọi API: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi gọi API: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6F8),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Center(
                 child: Text(
-                  'Analytics',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
+                  '📊 Analytics',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _timeFilterButton('Week'),
-                  _timeFilterButton('Month', isSelected: true),
-                  _timeFilterButton('Year'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Center(
-                child: Text(
-                  '\$20.000',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Center(
-                child: Text(
-                  'total spend',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF004D4D), width: 6),
-                ),
-                alignment: Alignment.center,
-                child: const Text('Vùng vẽ thống kê biểu đồ'),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Một số chi tiêu nhiều nhất',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: ['Week', 'Month', 'Year']
+                    .map((label) => _timeFilterButton(label))
+                    .toList(),
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      '${totalSpent.toStringAsFixed(2)} VND',
+                      style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal),
+                    ),
+                    const Text(
+                      'Tổng chi tiêu',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
                 ),
               ),
-              const Divider(),
-              const _ExpenseItem(
-                icon: Icons.fastfood,
-                label: 'Ăn uống',
-                date: '23 /5/ 2025',
-                amount: '-50,000',
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.teal.shade100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.15),
+                      spreadRadius: 2,
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  height: 250,
+                  child: CategoryBarChart(data: categoryExpensesList),
+                ),
               ),
-              const _ExpenseItem(
-                icon: Icons.menu_book,
-                label: 'Học tập',
-                date: '23 /5/ 2025',
-                amount: '-50,000',
+              const SizedBox(height: 30),
+              const Text(
+                '📌 Thống kê theo danh mục',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
+              const Divider(thickness: 1.2),
+              categoryExpensesList.isEmpty
+                  ? const Padding(
+                padding: EdgeInsets.only(top: 32),
+                child: Center(
+                  child: Text('Chưa có dữ liệu chi tiêu',
+                      style: TextStyle(color: Colors.grey)),
+                ),
+              )
+                  : ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: categoryExpensesList.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 6),
+                itemBuilder: (context, index) {
+                  final item = categoryExpensesList[index];
+                  return CategoryExpenseCard(
+                    category: item.category,
+                    amount: item.totalAmount,
+                  );
+                },
+              ),
+              const SizedBox(height: 70),
             ],
           ),
         ),
       ),
-      floatingActionButton: CustomFAB(),
+      floatingActionButton: const CustomFAB(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
-  Widget _timeFilterButton(String label, {bool isSelected = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.grey[400] : Colors.grey[300],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w500),
+  Widget _timeFilterButton(String label) {
+    final isSelected = label == selectedFilter;
+    return GestureDetector(
+      onTap: () {
+        setState(() => selectedFilter = label);
+        loadAnalyticsData(label);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.teal : Colors.grey[300],
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ExpenseItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String date;
-  final String amount;
+class CategoryExpenseCard extends StatelessWidget {
+  final String category;
+  final double amount;
 
-  const _ExpenseItem({
-    required this.icon,
-    required this.label,
-    required this.date,
+  const CategoryExpenseCard({
+    super.key,
+    required this.category,
     required this.amount,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.pink[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 28, color: Colors.black87),
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.grey[100],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: const Icon(Icons.category, color: Colors.teal),
+        title: Text(
+          category,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600, // in đậm hơn chút
+            fontSize: 18,               // tăng font size lên 18
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(date, style: const TextStyle(color: Colors.black54)),
-              ],
-            ),
+        ),
+        trailing: Text(
+          '${amount.toStringAsFixed(2)} VND',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,               // tăng font size lên 18
+            color: Colors.black87,
           ),
-          Text(
-            amount,
-            style: const TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
+

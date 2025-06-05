@@ -1,68 +1,47 @@
-import 'package:app_chi_tieu/models/expense_model.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-class ExpenseItems extends StatelessWidget {
-  const ExpenseItems({
-    super.key,
-    required this.expense,
-  });
+import '../models/transaction_item_model.dart';
 
-  final Expense expense;
+class TransactionListItem extends StatelessWidget {
+  final TransactionItemModel tx;
+  final String icon;
 
+  const TransactionListItem({super.key, required this.tx, required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            color: Color(0xFF51A563),  // Màu nền của biểu tượng
-            borderRadius: BorderRadius.circular(16), // bo tròn các góc
-          ),
-          child: Icon(
-            getCategoryIcon(expense.category),
-            color: Colors.white, // Màu của biểu tượng
-            size: 38, // Kích thước biểu tượng
-          ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundColor: Colors.grey.shade200,
+          child: Text(icon, style: const TextStyle(fontSize: 20)),
         ),
+        title: Text(
+          tx.category,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(tx.date != null ? tx.date!.toLocal().toString().split(' ')[0] : ''),
 
-        title: Text(expense.title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            )),
-        subtitle: Text(DateFormat('dd/MM/yyyy').format(expense.date),
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 18,
-            )),
-
+            if (tx.note.isNotEmpty) Text(tx.note),
+          ],
+        ),
         trailing: Text(
-          '${expense.amount} đ',
+          '- \$${tx.amount.toStringAsFixed(2)}',
           style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.red,
-            fontSize: 18,
+            color: Colors.redAccent,
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
           ),
         ),
       ),
     );
-  }
-  IconData getCategoryIcon(String category) {
-    switch (category) {
-      case 'food':
-        return Icons.fastfood;
-      case 'phone':
-        return Icons.phone_android;
-      case 'transport':
-        return Icons.directions_car;
-      case 'shopping':
-        return Icons.shopping_cart;
-      default:
-        return Icons.attach_money;
-    }
   }
 }

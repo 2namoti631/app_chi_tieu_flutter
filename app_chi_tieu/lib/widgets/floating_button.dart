@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/add_expense_screen.dart';
+import '../screens/category_screen.dart';
 
 class CustomFAB extends StatelessWidget {
   const CustomFAB({super.key});
@@ -39,11 +40,15 @@ class CustomFAB extends StatelessWidget {
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.camera_alt_outlined),
-                    title: const Text('Ảnh chi tiêu'),
+                    leading: const Icon(Icons.category_outlined),
+                    title: const Text('Thêm danh mục'),
                     onTap: () {
-                      Navigator.pop(context);
-                      // Xử lý chụp ảnh ở đây nếu cần
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryScreen(),
+                        ),
+                      );
                     },
                   ),
                 ],

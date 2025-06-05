@@ -15,18 +15,10 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 33),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              SizedBox(height: 20),
-              Homeheader(),
-              SizedBox(height: 20),
-              Expanded(child: HomeBody()),
-            ],
-          ),
+          child: const HomeBody(),  // chỉ giữ HomeBody
         ),
       ),
-      floatingActionButton:CustomFAB(),
+      floatingActionButton: CustomFAB(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
